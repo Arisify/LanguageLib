@@ -22,16 +22,13 @@ namespace arie\language;
 use pocketmine\utils\EnumTrait;
 
 class TranslatorTag{
-	public const LANGUAGE_NAME = "{LANGUAGE_NAME}";
-	public const LANGUAGE_VER = "{LANGUAGE_VER}";
+	public const DEFAULT_ID = "{DEFAULT_LANGUAGE_ID}";
+	public const DEFAULT_NAME = "{DEFAULT_LANGUAGE_NAME}";
+	public const DEFAULT_VERSION = "{DEFAULT_LANGUAGE_VERSION}";
+
 	public const LANGUAGE_ID = "{LANGUAGE_ID}";
-	public const DEFAULT_LANGUAGE_VER = "{DEFAULT_LANGUAGE_VER}";
-	public const DEFAULT_LANGUAGE_NAME = "{DEFAULT_LANGUAGE_NAME}";
-	public const DEFAULT_LANGUAGE_ID = "{DEFAULT_LANGUAGE_ID}";
+	public const LANGUAGE_NAME = "{LANGUAGE_NAME}";
+	public const LANGUAGE_VERSION = "{LANGUAGE_VERSION}";
 
 	public const MESSAGE_KEY = "{MESSAGE_KEY}";
-
-	public const PLUGIN_LANGUAGE_VER = "{PLUGIN_LANGUAGE_VER}";
-	public const PLUGIN_LANGUAGE_NAME = "{PLUGIN_LANGUAGE_NAME}";
-	public const PLUGIN_LANGUAGE_ID = "{PLUGIN_LANGUAGE_ID}";
 }
