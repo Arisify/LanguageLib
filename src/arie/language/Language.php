@@ -25,6 +25,7 @@ use Webmozart\PathUtil\Path;
 final class Language{
 	public const HARDCODED_LANGUAGE_NAME = "language.name";
 	public const HARDCODED_LANGUAGE_VERSION = "language.version";
+	public const DEFAULT_VERSION = -1.0;
 
 	public function __construct(
 		protected ?string $id = null,
@@ -36,14 +37,14 @@ final class Language{
 			throw new \UnexpectedValueException("The id was supposed to be a valid id but null was given!");
 		}
 		$this->name ??= (string) ($this->messages[self::HARDCODED_LANGUAGE_NAME] ?? Utils::getLocaleName($this->id));
-		$this->version ??= (float) ($this->messages[self::HARDCODED_LANGUAGE_VERSION] ?? -1.0);
+		$this->version ??= (float) ($this->messages[self::HARDCODED_LANGUAGE_VERSION] ?? self::DEFAULT_VERSION);
 	}
 
-	public static function create(string $id, string $name = "unknown", float $version = -1.0, array $messages = []) : Language{
+	public static function create(string $id, ?string $name = null, ?float $version = null, array $messages = []) : Language{
 		return new Language($id, $name, $version, $messages);
 	}
 
-	public static function createFromFile(string $filePath, ?string $id = null, ?string $name = null, float $version = -1.0) : ?Language{
+	public static function createFromFile(string $filePath, ?string $id = null, ?string $name = null, ?float $version = null) : ?Language{
 		try {
 			return match (strtolower(Path::getExtension($filePath))) {
 				"yml" => new Language($id ?? basename($filePath, ".yml"), $name, $version, yaml_parse_file($filePath)),
@@ -55,7 +56,7 @@ final class Language{
 		}
 	}
 
-	public static function createFromConfig(Config $config, ?string $id = null, ?string $name = null, float $version = -1.0) : Language{
+	public static function createFromConfig(Config $config, ?string $id = null, ?string $name = null, ?float $version = null) : Language{
 		return new Language($id ?? preg_replace("/\.[^.]+$/", "", basename($config->getPath())), $name, $version, $config->getAll(true));
 	}
 

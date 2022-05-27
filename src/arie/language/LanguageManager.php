@@ -58,7 +58,8 @@ final class LanguageManager{
 
 	){
 		$this->filePath = $this->plugin->getDataFolder() . $folderName . "/";
-		$bl = static function(string $path) use ($blacklists) : bool{
+		$bl = static function(string $path, string $root) use ($blacklists) : bool{
+			$path = str_replace(DIRECTORY_SEPARATOR, "/", substr($path, strlen($root)));
 			foreach ($blacklists as $bl) {
 				if (fnmatch($bl, $path)) {
 					return true;
@@ -69,7 +70,7 @@ final class LanguageManager{
 
 		/** @var resource $resource */
 		foreach ($plugin->getResources() as $path => $resource) {
-			if (dirname($path) !== $folderName || Utils::isSupportedFile($path) || $bl($path)) {
+			if (dirname($path) !== $folderName || Utils::isSupportedFile($path) || $bl($path, $this->folderName . "/")) {
 				continue;
 			}
 			$id = pathinfo($path, PATHINFO_FILENAME);
@@ -86,7 +87,7 @@ final class LanguageManager{
 		}
 		if ($this->custom_language) {
 			foreach (glob($this->filePath . "*") as $path) {
-				if (is_dir($path) || $bl(str_replace(DIRECTORY_SEPARATOR, "/", substr($path, strlen($this->filePath))))) {
+				if (is_dir($path) || $bl($path, $this->filePath)) {
 					continue;
 				}
 				$id = pathinfo($path, PATHINFO_FILENAME);
@@ -109,8 +110,7 @@ final class LanguageManager{
 					TranslatorTag::LANGUAGE_ID => $language->getId(),
 					TranslatorTag::LANGUAGE_NAME => $language->getName(),
 					TranslatorTag::DEFAULT_VERSION => $default_version
-				],
-				id: $this->current
+				]
 			));
 		}
 	}
