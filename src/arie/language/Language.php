@@ -19,6 +19,9 @@ declare(strict_types=1);
 
 namespace arie\language;
 
+use pocketmine\utils\Config;
+use Webmozart\PathUtil\Path;
+
 final class Language{
 	public const HARDCODED_LANGUAGE_NAME = "language.name";
 	public const HARDCODED_LANGUAGE_VERSION = "language.version";
@@ -41,8 +44,22 @@ final class Language{
 		return new Language($id, $name, $version, $messages, $factory);
 	}
 
-	public static function createFromYML(string $filePath, ?string $id = null, ?string $name = null, float $version = -1.0, bool $factory = false) : Language{
-		return new Language($id ?? basename($filePath, ".yml"), $name, $version, yaml_parse_file($filePath), $factory);
+	public static function createFromFile(string $filePath, ?string $id = null, ?string $name = null, float $version = -1.0, bool $factory = false) : ?Language{ //A bunch of unnecessary code...
+		$content = file_get_contents($filePath);
+
+		try {
+			return match (strtolower(Path::getExtension($filePath))) {
+				"yml" => new Language($id ?? basename($filePath, ".yml"), $name, $version, yaml_parse_file($filePath), $factory),
+				"json" => new Language($id ?? basename($filePath, ".json"), $name, $version, json_decode(file_get_contents($filePath), false, 512, JSON_THROW_ON_ERROR), $factory),
+				default => null
+			};
+		} catch (\JsonException $e) {
+			return null;
+		}
+	}
+
+	public static function createFromConfig(Config $config, ?string $id = null, ?string $name = null, float $version = -1.0, bool $factory = false) : Language{
+		return new Language($id ?? preg_replace("/\.[^.]+$/", "", basename($config->getPath())), $name, $version, $config->getAll(true), $factory);
 	}
 
 	public function getMessage(string $key) : ?string{
