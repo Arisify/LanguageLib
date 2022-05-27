@@ -22,22 +22,21 @@ namespace arie\language;
 use pocketmine\plugin\PluginBase;
 
 final class LanguageManager{
+	public const FIRST_PARTY = 0;
+	public const SECOND_PARTY = 1;
+	public const THIRD_PARTY = 2;
+	public const FOURTH_PARTY = 3;
+
 	private string $current;
+
 	/** @var Language[] */
+
 	protected array $languages = [];
-	/** @var string[] */
-	private array $factory_languages = [];
+
 	private string $filePath;
 
-	public array $format = [
-		"json" => SupportedFileType::JSON(),
-		"js" => SupportedFileType::JSON(),
-		"yml" => SupportedFileType::YAML(),
-		"yaml" => SupportedFileType::YAML(),
-		"txt" => SupportedFileType::TXT(),
-		"lang" => SupportedFileType::LANG()
-	];
-
+	/** @var int[]  */
+	private array $types;
 
 	/**
 	 * @param PluginBase $plugin Todo
@@ -59,7 +58,6 @@ final class LanguageManager{
 
 	){
 		$this->filePath = $this->plugin->getDataFolder() . $folderName . "/";
-
 		$bl = static function(string $path) use ($blacklists) : bool{
 			foreach ($blacklists as $bl) {
 				if (fnmatch($bl, $path)) {
@@ -67,45 +65,42 @@ final class LanguageManager{
 				}
 			}
 			return false;
-		}
+		};
 
 		/** @var resource $resource */
 		foreach ($plugin->getResources() as $path => $resource) {
-			if (dirname($path) !== $this->folderName || $bl($path)) {
+			if (dirname($path) !== $this->folderName || Utils::isSupportedFile($path) || $bl($path)) {
 				fclose($resource);
 				continue;
 			}
+			$id = pathinfo($path, PATHINFO_FILENAME);
+			$this->types[$id] = self::FIRST_PARTY;
 			if ($this->saveLanguage) {
 				$this->plugin->saveResource($path);
 			}
+			if (!$this->custom_language) {
+				$result = $this->register(language: Language::create($id, messages: yaml_parse(stream_get_contents($resource))));
+				if ($result === false) {
+					unset($this->types[$id]);
+				}
+			}
 			fclose($resource);
 		}
-		foreach ($blacklists as $blacklist) {
-			$gl = glob($prefix . $blacklist);
-			if ($gl !== false) {
-				$resources = array_diff($resources, $gl);
+		if (!$this->custom_language) {
+			foreach (glob($this->filePath . "*") as $path) {
+				if (is_dir($path) || $bl(str_replace(DIRECTORY_SEPARATOR, "/", substr($path, strlen($this->filePath))))) {
+					continue;
+				}
+				$id = pathinfo($path, PATHINFO_FILENAME);
+				$this->types[$id] = isset($this->types[$id]) ? self::SECOND_PARTY : self::THIRD_PARTY;
+				$result = $this->register(Language::createFromFile($path, $id));
+				if ($result === false) {
+					unset($this->types[$id]);
+				}
 			}
 		}
-		$footer = 0;
-		foreach ($resources as $resource) {
-			$id = pathinfo($resource, PATHINFO_ALL);
-			if (in_array($id, $this->factory_languages, true)) {
-				$id .= "_{++$footer}";
-			} else {
-				$footer = 0;
-			}
-			$this->factory_languages[] = $id;
-			if (!$this->custom_language) {
-				$this->register(Language::create(basename($resource, '.yml'), messages: yaml_parse(file_get_contents($resource)), factory: true));
-			}
-		}
-		if ($this->custom_language) {
-			foreach (glob($this->filePath) as $language) {
-				$id  = basename($language, ".yml"); //BRUH (My logic suck)
-				$this->register(Language::createFromFile($language, $id, factory: in_array($id, $this->factory_languages, true)), true);
-			}
-		}
-		if (!in_array($this->default_language, $this->factory_languages, true)) {
+
+		if (!isset($this->languages[$default_language])) {
 			throw new \RuntimeException("Your default language must be registered before using!");
 		}
 		$this->current = $default_language;
@@ -117,38 +112,50 @@ final class LanguageManager{
 					TranslatorTag::LANGUAGE_NAME => $language->getName(),
 					TranslatorTag::DEFAULT_VERSION => $default_version
 				],
-				id: $this->current,factory: true
+				id: $this->current
 			));
 		}
 	}
 
+	/**
+	 * Register the language
+	 *
+	 * @param Language $language The input language
+	 * @param bool     $replace  Whether this should replace the existed one or the
+	 * @return bool
+	 */
 	public function register(Language $language, bool $replace = false) : bool{
 		$id = $language->getId();
 		if ($replace || !isset($this->languages[$id])) {
 			$this->languages[$id] = $language;
+			if (!$this->types[$id] !== null) {
+				$this->types[$id] = self::FOURTH_PARTY;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public function deleteLanguage(string $id) : bool{
+		if (isset($this->languages[$id])) {
+			unset($this->languages[$id], $this->types[$id]);
 			return true;
 		}
 		return false;
 	}
 
 	public function setLanguage(string $id) : bool{
-		if (!array_key_exists($id, $this->languages)) {
+		if (!isset($this->languages[$id])) {
 			return false;
 		}
 		$this->current = $id;
 		return true;
 	}
 
-	public function getMessage(string $key, array $replacements = [], ?string $default = null, ?string $id = null, bool $factory = false) : string{
+	public function getMessage(string $key, array $replacements = [], ?string $default = null, ?string $id = null) : string{
 		$message = $this->getLanguage($id)->getMessage($key);
 		if ($message === null) {
-			if (!$factory) {
-				return $key;
-			}
-			$message = $this->getFactoryData($key);
-			if ($message === null) {
-				return $default ?? $key;
-			}
+			return $default ?? $key;
 		}
 		return empty($replacements) ? $message : strtr($message, $replacements);
 	}
@@ -157,25 +164,12 @@ final class LanguageManager{
 		return $this->languages[$id] ?? $default ? $this->languages[$this->current] : null;
 	}
 
-	public function getFactoryData(string $id = null) : ?array{
-		if (!in_array($id, $this->factory_languages, true)) {
-			$id = $this->default_language;
-		}
-		$resource = $this->plugin->getResource("language/$id.yml");
-		if ($resource === null) {
-			$content = file_get_contents($this->plugin->getPluginLoader()->getAccessProtocol() . $this->filePath . $id . ".yml");
-			if ($content !== false) {
-				return yaml_parse($content);
-			}
-			return null;
-		}
-		$data = yaml_parse(stream_get_contents($resource));
-		fclose($resource);
-		return $data;
-	}
-
 	public function getLanguageList() : array{
 		return array_map(static fn(Language $language) : string => $language->getName(), $this->languages);
+	}
+
+	public function getTypes() : array{
+		return $this->types;
 	}
 
 	public function getCurrent() : string{

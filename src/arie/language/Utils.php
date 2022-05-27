@@ -18,8 +18,15 @@
 declare(strict_types=1);
 
 namespace arie\language;
-class LanguageList{
-	protected const LANGUAGES_NAME = [
+
+use pocketmine\plugin\PluginBase;
+
+final class Utils{
+	public const JSON = 0;
+	public const YML = 1;
+	public const LANG = 2;
+
+	public const LANGUAGES_NAME = [
 		"aa" => "Afar",
 		"ab" => "Abkhazian",
 		"ae" => "Avestan",
@@ -206,7 +213,30 @@ class LanguageList{
 		"zu" => "Zulu"
 	];
 
-	public static function getName(string $name) : string{
-		return self::LANGUAGES_NAME[strstr(str_replace('-', '_', $name), "_", true)] ?? "unknown";
+	public const SUPPORTED_FILE_TYPES = [
+		"json" => Utils::JSON,
+		"js" => Utils::JSON,
+		"lang" => Utils::LANG
+	];
+
+	public static function getLocaleName(string $name) : string{
+		return self::LANGUAGES_NAME[strtolower(strstr(str_replace('-', '_', $name), "_", true))] ?? "unknown";
+	}
+
+	public static function isSupportedFile(string $fileName) : bool{
+		return in_array(pathinfo($fileName, PATHINFO_EXTENSION), self::SUPPORTED_FILE_TYPES, true);
+	}
+
+	public static function getPluginData(PluginBase $plugin, string $path) : ?array{
+		if (!$plugin->isEnabled()) {
+			return null;
+		}
+		$resource = $plugin->getResource($path);
+		if ($resource === null) {
+			return null;
+		}
+		$data = yaml_parse(stream_get_contents($resource));
+		fclose($resource);
+		return $data;
 	}
 }
