@@ -69,8 +69,7 @@ final class LanguageManager{
 
 		/** @var resource $resource */
 		foreach ($plugin->getResources() as $path => $resource) {
-			if (dirname($path) !== $this->folderName || Utils::isSupportedFile($path) || $bl($path)) {
-				fclose($resource);
+			if (dirname($path) !== $folderName || Utils::isSupportedFile($path) || $bl($path)) {
 				continue;
 			}
 			$id = pathinfo($path, PATHINFO_FILENAME);
@@ -84,9 +83,8 @@ final class LanguageManager{
 					unset($this->types[$id]);
 				}
 			}
-			fclose($resource);
 		}
-		if (!$this->custom_language) {
+		if ($this->custom_language) {
 			foreach (glob($this->filePath . "*") as $path) {
 				if (is_dir($path) || $bl(str_replace(DIRECTORY_SEPARATOR, "/", substr($path, strlen($this->filePath))))) {
 					continue;
@@ -128,7 +126,7 @@ final class LanguageManager{
 		$id = $language->getId();
 		if ($replace || !isset($this->languages[$id])) {
 			$this->languages[$id] = $language;
-			if (!$this->types[$id] !== null) {
+			if (!isset($this->types[$id])) {
 				$this->types[$id] = self::FOURTH_PARTY;
 			}
 			return true;
@@ -176,7 +174,7 @@ final class LanguageManager{
 		return $this->current;
 	}
 
-	public function getVersion() : float{
+	public function getDefaultVersion() : float{
 		return $this->default_version;
 	}
 
