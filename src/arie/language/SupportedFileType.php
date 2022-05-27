@@ -15,18 +15,39 @@
  *
  *
 */
-declare(strict_types=1);
+declare(strict_types = 1);
 
 namespace arie\language;
 
 use pocketmine\utils\EnumTrait;
 
-class TranslatorTag{
-	public const DEFAULT_ID = "{DEFAULT_LANGUAGE_ID}";
-	public const DEFAULT_NAME = "{DEFAULT_LANGUAGE_NAME}";
-	public const DEFAULT_VERSION = "{DEFAULT_LANGUAGE_VERSION}";
+/**
+ * @method static self JSON()
+ * @method static self YAML()
+ * @method static self TXT()
+ * @method static self LANG()
+ */
 
-	public const LANGUAGE_ID = "{LANGUAGE_ID}";
-	public const LANGUAGE_NAME = "{LANGUAGE_NAME}";
-	public const LANGUAGE_VERSION = "{LANGUAGE_VERSION}";
+final class SupportedFileType{
+	use EnumTrait{
+		__construct as Enum__construct;
+	}
+
+	protected static function setup() : void{
+		self::registerAll(
+			new self('json', 0),
+			new self('yaml', 1),
+			new self('txt', 2),
+			new self('lang', 3),
+		);
+	}
+
+	private function __construct(string $name, protected int $format){
+		$this->Enum__construct($name);
+	}
+
+	public function getFormat() : int{
+		return $this->format;
+	}
+
 }
