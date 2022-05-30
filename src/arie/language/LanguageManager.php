@@ -22,36 +22,36 @@ namespace arie\language;
 use pocketmine\plugin\PluginBase;
 
 final class LanguageManager{
+	/** @const LANGUAGE TYPE */
 	public const FIRST_PARTY = 0;
 	public const SECOND_PARTY = 1;
 	public const THIRD_PARTY = 2;
 	public const FOURTH_PARTY = 3;
 
+	/** @var string */
+	private string $filePath;
 	private string $current;
 
 	/** @var Language[] */
-
 	protected array $languages = [];
-
-	private string $filePath;
 
 	/** @var int[]  */
 	private array $types;
 
 	/**
-	 * @param PluginBase $plugin Todo
-	 * @param string $folderName Where the language file in plugin resources
-	 * @param string|null $default_language The default language
-	 * @param float $default_version The default version
-	 * @param bool $saveLanguage Should the plugin auto save the language resource to the plugin data folder
-	 * @param bool $custom_language Allow 3rd language?
-	 * @param array $blacklists A list of black listed files or patterns
+	 * @param PluginBase $plugin Attaching the plugin to the manager.
+	 * @param string $folderName The name of the storage directory of the data, empty for nothing?
+	 * @param string|null $default_language Setting the default language of the manager.
+	 * @param float $latest_version Setting the default version of the language. This will be used for checking the outdated languages.
+	 * @param bool $saveLanguage Should the plugin save the language resources to the data folder
+	 * @param bool $custom_language Allowing users customizing the language messages
+	 * @param array $blacklists Blacklisted files and patterns (Glob)
 	 */
 	public function __construct(
 		protected PluginBase $plugin,
 		protected string $folderName = "",
 		protected ?string $default_language = null,
-		protected float $default_version = -1.0,
+		protected float $latest_version = -1.0,
 		protected bool $saveLanguage = true,
 		protected bool $custom_language = true,
 		array $blacklists = []
@@ -103,16 +103,16 @@ final class LanguageManager{
 			throw new \RuntimeException("Your default language must be registered before using!");
 		}
 		$this->current = $default_language;
-		if ($default_version > $this->languages[$default_language]->getVersion()) {
+		/*if ($latest_version > $this->languages[$default_language]->getVersion()) {
 			$language = $this->getLanguage();
 			$this->plugin->getLogger()->notice($this->getMessage(LanguageTag::LANGUAGE_OUTDATED,
 				[
 					TranslatorTag::LANGUAGE_ID => $language->getId(),
 					TranslatorTag::LANGUAGE_NAME => $language->getName(),
-					TranslatorTag::DEFAULT_VERSION => $default_version
+					TranslatorTag::DEFAULT_VERSION => $latest_version
 				]
 			));
-		}
+		}*/
 	}
 
 	/**
@@ -120,21 +120,23 @@ final class LanguageManager{
 	 *
 	 * @param Language $language The input language
 	 * @param bool     $replace  Whether this should replace the existed one or the
+	 * @param bool     $suffix
 	 * @return bool
 	 */
-	public function register(Language $language, bool $replace = false) : bool{
+	public function register(Language $language, bool $replace = false, bool $suffix = true) : bool{
 		$id = $language->getId();
-		if ($replace || !isset($this->languages[$id])) {
-			$this->languages[$id] = $language;
-			if (!isset($this->types[$id])) {
-				$this->types[$id] = self::FOURTH_PARTY;
+		if (isset($this->languages[$id]) && $replace) {
+			if ($suffix) {
+				$id .= time();
 			}
+			$this->languages[$id] = $language;
+			$this->types[$id] = self::FOURTH_PARTY;
 			return true;
 		}
 		return false;
 	}
 
-	public function deleteLanguage(string $id) : bool{
+	public function unregister(string $id) : bool{
 		if (isset($this->languages[$id])) {
 			unset($this->languages[$id], $this->types[$id]);
 			return true;
@@ -158,24 +160,20 @@ final class LanguageManager{
 		return empty($replacements) ? $message : strtr($message, $replacements);
 	}
 
-	public function getLanguage(?string $id = null, bool $default = true) : ?Language{
-		return $this->languages[$id] ?? $default ? $this->languages[$this->current] : null;
+	public function getLanguage(?string $id = null) : ?Language{
+		return $this->languages[$id ?? $this->current] ?? null;
 	}
 
 	public function getLanguageList() : array{
 		return array_map(static fn(Language $language) : string => $language->getName(), $this->languages);
 	}
 
-	public function getTypes() : array{
-		return $this->types;
-	}
-
 	public function getCurrent() : string{
 		return $this->current;
 	}
 
-	public function getDefaultVersion() : float{
-		return $this->default_version;
+	public function getLatestVersion() : float{
+		return $this->latest_version;
 	}
 
 	public function getPlugin() : PluginBase{
