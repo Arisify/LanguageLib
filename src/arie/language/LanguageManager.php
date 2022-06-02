@@ -55,7 +55,6 @@ final class LanguageManager{
 		protected bool $saveLanguage = true,
 		protected bool $custom_language = true,
 		array $blacklists = []
-
 	){
 		$this->filePath = $this->plugin->getDataFolder() . $folderName . "/";
 		$bl = static function(string $path, string $root) use ($blacklists) : bool{

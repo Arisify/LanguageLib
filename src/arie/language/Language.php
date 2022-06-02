@@ -20,24 +20,33 @@ declare(strict_types=1);
 namespace arie\language;
 
 use pocketmine\utils\Config;
-use Webmozart\PathUtil\Path;
+use pocketmine\utils\TextFormat;
 
 final class Language{
-	public const HARDCODED_LANGUAGE_NAME = "language.name";
-	public const HARDCODED_LANGUAGE_VERSION = "language.version";
+	public const HARDCODED_LANGUAGE_HEADER = "language";
+	public const HARDCODED_LANGUAGE_NAME = "name";
+	public const HARDCODED_LANGUAGE_VERSION = "version";
 	public const DEFAULT_VERSION = -1.0;
 
+	/** @var string[] */
+	private array $messages;
+
+	/**
+	 * @param string      $id       The input id of the Language
+	 * @param string|null $name     The input name of the Language
+	 * @param float|null  $version  The input version of the Language
+	 * @param array       $messages The input lists of the messages
+	 */
 	public function __construct(
-		protected ?string $id = null,
+		protected string  $id,
 		protected ?string $name = null,
 		protected ?float  $version = null,
-		protected array   $messages = []
+		array             $messages = [],
+		bool              $filter = true
 	){
-		if ($this->id === null) {
-			throw new \UnexpectedValueException("The id was supposed to be a valid id but null was given!");
-		}
-		$this->name ??= (string) ($this->messages[self::HARDCODED_LANGUAGE_NAME] ?? Utils::getLocaleName($this->id));
-		$this->version ??= (float) ($this->messages[self::HARDCODED_LANGUAGE_VERSION] ?? self::DEFAULT_VERSION);
+		$this->name ??= (string) ($messages[self::HARDCODED_LANGUAGE_HEADER . self::HARDCODED_LANGUAGE_NAME] ?? Utils::getLocaleName($id));
+		$this->version ??= (float) ($messages[self::HARDCODED_LANGUAGE_HEADER . self::HARDCODED_LANGUAGE_VERSION] ?? self::DEFAULT_VERSION);
+		$this->messages = $filter ? $messages : array_map(static fn(string $s) : string => TextFormat::colorize($s), $messages);
 	}
 
 	public static function create(string $id, ?string $name = null, ?float $version = null, array $messages = []) : Language{
@@ -45,11 +54,13 @@ final class Language{
 	}
 
 	public static function createFromFile(string $filePath, ?string $id = null, ?string $name = null, ?float $version = null) : ?Language{
+		$id ??= pathinfo($filePath, PATHINFO_FILENAME);
+		$content = file_get_contents($filePath);
 		try {
-			return match (strtolower(Path::getExtension($filePath))) {
-				"yml" => new Language($id ?? basename($filePath, ".yml"), $name, $version, yaml_parse_file($filePath)),
-				"json" => new Language($id ?? basename($filePath, ".json"), $name, $version, json_decode(file_get_contents($filePath), false, 512, JSON_THROW_ON_ERROR)),
-				default => null
+			return match (strtolower(pathinfo($filePath, PATHINFO_EXTENSION))) {
+				"yml", "yaml" => new self($id, $name, $version, Utils::cleanUp(yaml_parse($content))),
+				"js", "json" => new self($id, $name, $version, Utils::cleanUp(json_decode($content, false, 512, JSON_THROW_ON_ERROR))),
+				"txt", "lang" => new self($id, $name, $version, Utils::cleanUp(Utils::parseProperties($content)))
 			};
 		} catch (\JsonException $e) {
 			return null;
@@ -57,7 +68,7 @@ final class Language{
 	}
 
 	public static function createFromConfig(Config $config, ?string $id = null, ?string $name = null, ?float $version = null) : Language{
-		return new Language($id ?? preg_replace("/\.[^.]+$/", "", basename($config->getPath())), $name, $version, $config->getAll(true));
+		return new Language($id ?? pathinfo($config->getPath(), PATHINFO_FILENAME), $name, $version, Utils::cleanUp($config->getAll(true)));
 	}
 
 	public function getMessage(string $key) : ?string{

@@ -239,4 +239,34 @@ final class Utils{
 		fclose($resource);
 		return $data;
 	}
+
+	/**
+	 * @return string[]
+	 */
+	public static function cleanUp(array $messages) : array{
+		$result = [];
+		foreach ($messages as $key => $message) {
+			if (is_array($message)) {
+				foreach ($message as $k => $m) {
+					$result[$key . $k] = $m;
+				}
+			}
+			$result[(string) $key] = (string) $message;
+		}
+		return $result;
+	}
+
+	/**
+	 * @return string[]
+	 */
+	public static function parseProperties(string $content) : array{
+		$result = [];
+		if (preg_match_all('~^\s*(\D[\w\-_.]+)[ \t]*=([^\r\n#]*)~umx', $content, $matches) > 0) {
+			foreach($matches[1] as $i => $k){
+				$result[(string) $k] = trim($matches[2][$i]);
+			}
+		}
+
+		return $result;
+	}
 }
