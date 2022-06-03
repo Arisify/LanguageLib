@@ -23,7 +23,7 @@ use pocketmine\plugin\PluginBase;
 
 final class Utils{
 	public const JSON = 0;
-	public const YML = 1;
+	public const YAML = 1;
 	public const LANG = 2;
 
 	public const LANGUAGES_NAME = [
@@ -216,6 +216,9 @@ final class Utils{
 	public const SUPPORTED_FILE_TYPES = [
 		"json" => Utils::JSON,
 		"js" => Utils::JSON,
+		"yaml" => Utils::YAML,
+		"yml" => Utils::YAML,
+		"txt" => Utils::LANG,
 		"lang" => Utils::LANG
 	];
 
@@ -248,7 +251,7 @@ final class Utils{
 		foreach ($messages as $key => $message) {
 			if (is_array($message)) {
 				foreach ($message as $k => $m) {
-					$result[$key . $k] = $m;
+					$result[$key . "." . $k] = $m;
 				}
 			}
 			$result[(string) $key] = (string) $message;

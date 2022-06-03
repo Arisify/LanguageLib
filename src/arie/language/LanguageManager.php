@@ -31,7 +31,7 @@ final class LanguageManager{
 
 	/** @var string */
 	private string $filePath;
-	private string $current;
+	private string $current_language;
 
 	/** @var Language[] */
 	protected array $languages = [];
@@ -75,14 +75,12 @@ final class LanguageManager{
 			}
 			$id = pathinfo($path, PATHINFO_FILENAME);
 			$this->types[$id] = self::FIRST_PARTY;
+
 			if ($this->saveLanguage) {
 				$this->plugin->saveResource($path);
 			}
-			if (!$this->custom_language) {
-				$result = $this->register(language: Language::create($id, messages: yaml_parse(stream_get_contents($resource))));
-				if ($result === false) {
-					unset($this->types[$id]);
-				}
+			if (!$this->custom_language && !$this->register(Language::create($id, messages: yaml_parse(stream_get_contents($resource))))) {
+				unset($this->types[$id]);
 			}
 		}
 		if ($this->custom_language) {
@@ -92,8 +90,7 @@ final class LanguageManager{
 				}
 				$id = pathinfo($path, PATHINFO_FILENAME);
 				$this->types[$id] = isset($this->types[$id]) ? self::SECOND_PARTY : self::THIRD_PARTY;
-				$result = $this->register(Language::createFromFile($path, $id));
-				if ($result === false) {
+				if (!$this->register(Language::createFromFile($path, $id))) {
 					unset($this->types[$id]);
 				}
 			}
@@ -102,7 +99,7 @@ final class LanguageManager{
 		if (!isset($this->languages[$default_language])) {
 			throw new \RuntimeException("Your default language must be registered before using!");
 		}
-		$this->current = $default_language;
+		$this->current_language = $default_language;
 		/*if ($latest_version > $this->languages[$default_language]->getVersion()) {
 			$language = $this->getLanguage();
 			$this->plugin->getLogger()->notice($this->getMessage(LanguageTag::LANGUAGE_OUTDATED,
@@ -120,15 +117,11 @@ final class LanguageManager{
 	 *
 	 * @param Language $language The input language
 	 * @param bool     $replace  Whether this should replace the existed one or the
-	 * @param bool     $suffix   Should rename the existed language?
 	 * @return bool
 	 */
-	public function register(Language $language, bool $replace = false, bool $suffix = true) : bool{
+	public function register(Language $language, bool $replace = false) : bool{
 		$id = $language->getId();
-		if (isset($this->languages[$id]) && $replace) {
-			if ($suffix) {
-				$id .= time();
-			}
+		if (!isset($this->languages[$id]) || $replace) {
 			$this->languages[$id] = $language;
 			$this->types[$id] = self::FOURTH_PARTY;
 			return true;
@@ -148,7 +141,7 @@ final class LanguageManager{
 		if (!isset($this->languages[$id])) {
 			return false;
 		}
-		$this->current = $id;
+		$this->current_language = $id;
 		return true;
 	}
 
@@ -156,13 +149,13 @@ final class LanguageManager{
 	 * @param string        $key          The search key
 	 * @param array         $replacements The replacements array ["{BOO}" => "foo"]
 	 * @param string|null   $default      Return this if the key is not found
-	 * @param string|null   $id           The id of the language, default is the current settings
+	 * @param string|null   $id           The id of the language, default is the current language
 	 * @param bool          $source       Search in the plugin source resources
 	 * @param \Closure|null $onReturn     Filter function: signature `function(string $message)`
 	 * @return string
 	 */
 	public function getMessage(string $key, array $replacements = [], ?string $default = null, ?string $id = null, bool $source = false, ?\Closure $onReturn = null) : string{
-		$id ??= $this->current;
+		$id ??= $this->current_language;
 		$message = $this->getLanguage($id)->getMessage($key);
 		if ($message === null) {
 			if ($source) {
@@ -182,15 +175,15 @@ final class LanguageManager{
 	}
 
 	public function getLanguage(?string $id = null) : ?Language{
-		return $this->languages[$id ?? $this->current] ?? null;
+		return $this->languages[$id ?? $this->current_language] ?? null;
 	}
 
 	public function getLanguageList() : array{
 		return array_map(static fn(Language $language) : string => $language->getName(), $this->languages);
 	}
 
-	public function getCurrent() : string{
-		return $this->current;
+	public function getCurrentLanguage() : string{
+		return $this->current_language;
 	}
 
 	public function getLatestVersion() : float{
