@@ -20,6 +20,7 @@ declare(strict_types=1);
 namespace arie\language;
 
 use pocketmine\plugin\PluginBase;
+use pocketmine\utils\Utils as PUtils;
 
 final class LanguageManager{
 	/** @const LANGUAGE TYPE */
@@ -39,13 +40,13 @@ final class LanguageManager{
 	private array $types;
 
 	/**
-	 * @param PluginBase $plugin Attaching the plugin to the manager.
-	 * @param string $folderName The name of the storage directory of the data, empty for nothing?
+	 * @param PluginBase  $plugin           Attaching the plugin to the manager.
+	 * @param string      $folderName       The name of the storage directory of the data, empty for nothing?
 	 * @param string|null $default_language Setting the default language of the manager.
-	 * @param float $latest_version Setting the default version of the language. This will be used for checking the outdated languages.
-	 * @param bool $saveLanguage Should the plugin save the language resources to the data folder
-	 * @param bool $custom_language Allowing users customizing the language messages
-	 * @param array $blacklists Blacklisted files and patterns (Glob)
+	 * @param float       $latest_version   Setting the default version of the language. This will be used for checking the outdated languages.
+	 * @param bool        $saveLanguage     Should the plugin save the language resources to the data folder
+	 * @param bool        $custom_language  Allowing users customizing the language messages
+	 * @param array       $blacklists       Blacklisted files and patterns (Glob)
 	 */
 	public function __construct(
 		protected PluginBase $plugin,
@@ -119,7 +120,7 @@ final class LanguageManager{
 	 *
 	 * @param Language $language The input language
 	 * @param bool     $replace  Whether this should replace the existed one or the
-	 * @param bool     $suffix
+	 * @param bool     $suffix   Should rename the existed language?
 	 * @return bool
 	 */
 	public function register(Language $language, bool $replace = false, bool $suffix = true) : bool{
@@ -151,12 +152,33 @@ final class LanguageManager{
 		return true;
 	}
 
-	public function getMessage(string $key, array $replacements = [], ?string $default = null, ?string $id = null) : string{
+	/**
+	 * @param string        $key          The search key
+	 * @param array         $replacements The replacements array ["{BOO}" => "foo"]
+	 * @param string|null   $default      Return this if the key is not found
+	 * @param string|null   $id           The id of the language, default is the current settings
+	 * @param bool          $source       Search in the plugin source resources
+	 * @param \Closure|null $onReturn     Filter function: signature `function(string $message)`
+	 * @return string
+	 */
+	public function getMessage(string $key, array $replacements = [], ?string $default = null, ?string $id = null, bool $source = false, ?\Closure $onReturn = null) : string{
+		$id ??= $this->current;
 		$message = $this->getLanguage($id)->getMessage($key);
 		if ($message === null) {
+			if ($source) {
+				$data = Utils::cleanUp(Utils::getPluginData($this->plugin, $this->folderName . $id));
+				if (isset($data[$key])) {
+					return $data[$key];
+				}
+			}
 			return $default ?? $key;
 		}
-		return empty($replacements) ? $message : strtr($message, $replacements);
+		$m = empty($replacements) ? $message : strtr($message, $replacements);
+		if ($onReturn !== null) {
+			PUtils::validateCallableSignature(static function(string $message) : void{}, $onReturn);
+			return $onReturn($m);
+		}
+		return $m;
 	}
 
 	public function getLanguage(?string $id = null) : ?Language{
