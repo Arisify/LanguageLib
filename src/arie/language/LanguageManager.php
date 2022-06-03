@@ -97,7 +97,7 @@ final class LanguageManager{
 		}
 
 		if (!isset($this->languages[$default_language])) {
-			throw new \RuntimeException("Your default language must be registered before using!");
+			throw new \RuntimeException("The default language must be registered before using!");
 		}
 		$this->current_language = $default_language;
 		/*if ($latest_version > $this->languages[$default_language]->getVersion()) {
