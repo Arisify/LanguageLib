@@ -190,6 +190,10 @@ final class LanguageManager{
 		return $this->latest_version;
 	}
 
+	public function checkVersion() : bool{
+		return $this->latest_version > $this->getLanguage()->getVersion();
+	}
+
 	public function getPlugin() : PluginBase{
 		return $this->plugin;
 	}
