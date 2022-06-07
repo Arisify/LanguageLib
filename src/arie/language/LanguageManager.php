@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * Copyright (c) 2022 Arisify
  *
  * This program is freeware, so you are free to redistribute and/or modify
@@ -50,12 +50,12 @@ final class LanguageManager{
 	 */
 	public function __construct(
 		protected PluginBase $plugin,
-		protected string $folderName = "",
-		protected ?string $default_language = null,
-		protected float $latest_version = -1.0,
-		protected bool $saveLanguage = true,
-		protected bool $custom_language = true,
-		array $blacklists = []
+		protected string     $folderName = "",
+		protected ?string    $default_language = null,
+		protected float      $latest_version = -1.0,
+		protected bool       $saveLanguage = true,
+		protected bool       $custom_language = true,
+		array                $blacklists = []
 	){
 		$this->filePath = $this->plugin->getDataFolder() . $folderName . "/";
 		$bl = static function(string $path, string $root) use ($blacklists) : bool{
@@ -77,13 +77,13 @@ final class LanguageManager{
 			$this->types[$id] = self::FIRST_PARTY;
 
 			if ($this->saveLanguage) {
-				$this->plugin->saveResource($path);
+				$plugin->saveResource($path);
 			}
-			if (!$this->custom_language && !$this->register(Language::create($id, messages: yaml_parse(stream_get_contents($resource))))) {
+			if (!$custom_language && !$this->register(Language::create($id, messages: yaml_parse(stream_get_contents($resource))))) {
 				unset($this->types[$id]);
 			}
 		}
-		if ($this->custom_language) {
+		if ($custom_language) {
 			foreach (glob($this->filePath . "*") as $path) {
 				if (is_dir($path) || $bl($path, $this->filePath)) {
 					continue;
@@ -100,16 +100,6 @@ final class LanguageManager{
 			throw new \RuntimeException("The default language must be registered before using!");
 		}
 		$this->current_language = $default_language;
-		/*if ($latest_version > $this->languages[$default_language]->getVersion()) {
-			$language = $this->getLanguage();
-			$this->plugin->getLogger()->notice($this->getMessage(LanguageTag::LANGUAGE_OUTDATED,
-				[
-					TranslatorTag::LANGUAGE_ID => $language->getId(),
-					TranslatorTag::LANGUAGE_NAME => $language->getName(),
-					TranslatorTag::DEFAULT_VERSION => $latest_version
-				]
-			));
-		}*/
 	}
 
 	/**
@@ -175,7 +165,7 @@ final class LanguageManager{
 	}
 
 	public function getLanguage(?string $id = null) : ?Language{
-		return $this->languages[$id ?? $this->current_language] ?? null;
+		return $this->languages[$id] ?? $this->languages[$this->current_language] ?? null;
 	}
 
 	public function getLanguageList() : array{
@@ -190,8 +180,8 @@ final class LanguageManager{
 		return $this->latest_version;
 	}
 
-	public function checkVersion() : bool{
-		return $this->latest_version > $this->getLanguage()->getVersion();
+	public function checkVersion(?string $id = null) : bool{
+		return $this->latest_version > $this->getLanguage($id)->getVersion();
 	}
 
 	public function getPlugin() : PluginBase{

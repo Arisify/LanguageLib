@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * Copyright (c) 2022 Arisify
  *
  * This program is freeware, so you are free to redistribute and/or modify
@@ -44,7 +44,7 @@ final class Language{
 		array             $messages = [],
 		bool              $filter = true
 	){
-		$this->name ??= (string) ($messages[self::HARDCODED_LANGUAGE_HEADER . "." . self::HARDCODED_LANGUAGE_NAME] ?? Utils::getLocaleName($id));
+		$this->name ??= (string) ($messages[self::HARDCODED_LANGUAGE_HEADER . "." . self::HARDCODED_LANGUAGE_NAME] ?? "");
 		$this->version ??= (float) ($messages[self::HARDCODED_LANGUAGE_HEADER . "." . self::HARDCODED_LANGUAGE_VERSION] ?? self::DEFAULT_VERSION);
 		$this->messages = $filter ? $messages : array_map(static fn(string $s) : string => TextFormat::colorize($s), $messages);
 	}
