@@ -230,7 +230,10 @@ final class Utils{
 		return in_array(pathinfo($fileName, PATHINFO_EXTENSION), self::SUPPORTED_FILE_TYPES, true);
 	}
 
-	public static function getPluginData(PluginBase $plugin, string $path) : ?array{
+	/**
+	 * @return string[]|null
+	 */
+	public static function getPluginResource(PluginBase $plugin, string $path) : ?array{
 		if (!$plugin->isEnabled()) {
 			return null;
 		}

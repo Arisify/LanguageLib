@@ -149,7 +149,7 @@ final class LanguageManager{
 		$message = $this->getLanguage($id)->getMessage($key);
 		if ($message === null) {
 			if ($source) {
-				$data = Utils::cleanUp(Utils::getPluginData($this->plugin, $this->folderName . $id));
+				$data = Utils::cleanUp(Utils::getPluginResource($this->plugin, $this->folderName . $id));
 				if (isset($data[$key])) {
 					return $data[$key];
 				}

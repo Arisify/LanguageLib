@@ -1,5 +1,5 @@
 name: LanguageLib
-version: 1.0.5
+version: 1.0.6
 antigen: arie\language
 php: [8.0]
 authors: [Arie]
