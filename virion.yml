@@ -1,6 +1,6 @@
 name: LanguageLib
 version: 1.0.6
-antigen: arie\language
+antigen: arisify\language
 php: [8.0]
 authors: [Arie]
 description: A language manager virion for PMMP 4.0
